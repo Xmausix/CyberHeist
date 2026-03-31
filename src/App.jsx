@@ -1,5 +1,5 @@
-﻿import Scene from './components/Scene'
-import LevelSelect from './ui/LevelSelect'
+import Scene from './components/Scene'
+import NetworkMap from './ui/NetworkMap'
 import TerminalUI from './ui/TerminalUI'
 import { useGameStore } from './store/useGameStore'
 
@@ -10,7 +10,7 @@ function App() {
     <div className="app">
       <Scene />
       <TerminalUI />
-      {phase === 'level-select' && <LevelSelect />}
+      {phase === 'level-select' && <NetworkMap />}
     </div>
   )
 }

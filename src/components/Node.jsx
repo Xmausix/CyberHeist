@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { animate, remove } from 'animejs'
 
-function Node({ node, isActive, isCurrent, onPointerDown, onPointerUp }) {
+function Node({ node, isActive, isCurrent, isHint, onPointerDown, onPointerUp }) {
   const groupRef = useRef(null)
   const stateRef = useRef({ scale: isActive ? 1.25 : 1, emissive: isActive ? 1.1 : 0.35 })
   const [emissiveIntensity, setEmissiveIntensity] = useState(stateRef.current.emissive)
@@ -42,7 +42,13 @@ function Node({ node, isActive, isCurrent, onPointerDown, onPointerUp }) {
         }}
       >
         <sphereGeometry args={[0.22, 32, 32]} />
-        <meshStandardMaterial color={isActive ? '#39ff9e' : '#9e3dff'} emissive={isActive ? '#20ff8f' : '#6328a6'} emissiveIntensity={emissiveIntensity} metalness={0.5} roughness={0.25} />
+        <meshStandardMaterial
+          color={isHint ? '#00f6ff' : isActive ? '#39ff9e' : '#9e3dff'}
+          emissive={isHint ? '#00f6ff' : isActive ? '#20ff8f' : '#6328a6'}
+          emissiveIntensity={isHint ? 1.6 : emissiveIntensity}
+          metalness={0.5}
+          roughness={0.25}
+        />
       </mesh>
       <mesh>
         <sphereGeometry args={[0.3, 20, 20]} />

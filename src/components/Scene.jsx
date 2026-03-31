@@ -1,4 +1,4 @@
-﻿import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame } from '@react-three/fiber'
 import { Grid, OrbitControls, Stars } from '@react-three/drei'
 import { useMemo, useRef } from 'react'
 import { useGameStore } from '../store/useGameStore'
@@ -18,7 +18,7 @@ function FloatingRig({ children }) {
 }
 
 function SceneInner() {
-  const { level, pathNodes, pathEdges, pointerDownNode, pointerUpNode, cancelDrag, selectedNode } = useGameStore()
+  const { level, pathNodes, pathEdges, pointerDownNode, pointerUpNode, cancelDrag, selectedNode, hintNodeId } = useGameStore()
 
   const nodeMap = useMemo(() => new Map(level.nodes.map((node) => [node.id, node])), [level])
 
@@ -45,6 +45,7 @@ function SceneInner() {
             node={node}
             isActive={pathNodes.includes(node.id)}
             isCurrent={selectedNode === node.id}
+            isHint={hintNodeId === node.id}
             onPointerDown={pointerDownNode}
             onPointerUp={pointerUpNode}
           />

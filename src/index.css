@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   font-family: 'Consolas', 'JetBrains Mono', monospace;
   color: #d6f7ff;
   background-color: #03040a;
@@ -30,7 +30,7 @@ canvas {
   position: fixed;
   left: 1.5rem;
   top: 1.5rem;
-  width: min(430px, calc(100vw - 3rem));
+  width: min(520px, calc(100vw - 3rem));
   padding: 1rem;
   background: rgba(2, 8, 20, 0.78);
   border: 1px solid #163e57;
@@ -51,6 +51,11 @@ canvas {
   color: #80b6da;
 }
 
+.tutorial-text {
+  color: #8fe7d5;
+  font-size: 0.8rem;
+}
+
 .progress-box {
   margin-top: 0.7rem;
 }
@@ -58,6 +63,14 @@ canvas {
 .progress-box span {
   color: #95e8ff;
   font-size: 0.85rem;
+}
+
+.stats-row {
+  margin-top: 0.45rem;
+  display: flex;
+  justify-content: space-between;
+  color: #88c9ea;
+  font-size: 0.8rem;
 }
 
 .bar {
@@ -77,6 +90,7 @@ canvas {
 .actions {
   margin-top: 0.85rem;
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
@@ -106,12 +120,62 @@ button:disabled {
   font-size: 0.8rem;
 }
 
+.settings-panel {
+  margin-top: 0.7rem;
+  border: 1px solid #274a6e;
+  border-radius: 8px;
+  padding: 0.6rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.settings-panel label {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #96d8ef;
+}
+
 .overlay {
   position: fixed;
   inset: 0;
   display: grid;
   place-items: center;
   background: rgba(2, 4, 10, 0.7);
+}
+
+.network-map-overlay {
+  align-content: start;
+  padding-top: 1rem;
+  gap: 1rem;
+}
+
+.network-map-header {
+  width: min(960px, calc(100vw - 2rem));
+  background: rgba(2, 8, 20, 0.78);
+  border: 1px solid #1a4660;
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+}
+
+.network-map-header h2 {
+  margin: 0;
+  color: #84faff;
+}
+
+.network-map-header p {
+  margin: 0.35rem 0 0.7rem;
+  color: #8bc7df;
+}
+
+.network-map-canvas {
+  width: min(960px, calc(100vw - 2rem));
+  height: min(560px, calc(100vh - 180px));
+  border: 1px solid #1a4660;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 24px rgba(0, 246, 255, 0.16);
 }
 
 .overlay.boot {
@@ -181,4 +245,3 @@ button:disabled {
     opacity: 1;
   }
 }
-

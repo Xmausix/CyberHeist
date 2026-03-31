@@ -3,6 +3,7 @@ import { useGameStore } from '../store/useGameStore'
 
 function LevelSelect() {
   const unlocked = useGameStore((state) => state.unlockedLevelIds)
+  const bestResults = useGameStore((state) => state.bestResults)
   const selectLevel = useGameStore((state) => state.selectLevel)
   const levels = getLevelMeta()
 
@@ -12,6 +13,7 @@ function LevelSelect() {
       <div className="card-grid">
         {levels.map((level) => {
           const isUnlocked = unlocked.includes(level.id)
+          const best = bestResults[level.id]
           return (
             <button
               key={level.id}
@@ -22,6 +24,7 @@ function LevelSelect() {
               <strong>LEVEL {level.id}</strong>
               <span>{level.codeName}</span>
               <small>{level.difficulty} · {level.totalNodes} nodes</small>
+              {best && <small>BEST {best.grade} · {best.score}</small>}
               {!isUnlocked && <em>LOCKED</em>}
             </button>
           )
@@ -32,4 +35,3 @@ function LevelSelect() {
 }
 
 export default LevelSelect
-

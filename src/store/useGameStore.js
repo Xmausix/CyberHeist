@@ -1,11 +1,39 @@
-import { create } from 'zustand'
-import { animate } from 'animejs'
-import { getLevelById, getNextLevelId } from '../systems/levelManager'
-import { buildLevelIndex, canConnectNodes, getProgressPercent, hasWonLevel } from '../systems/puzzleLogic'
+﻿import { create } from 'zustand'
+import { getLevelById, getLevelMeta, getNextLevelId } from '../systems/levelManager'
+import { generateProceduralLevel } from '../systems/proceduralLevels'
+import {
+  buildLevelIndex,
+  canConnectNodes,
+  getHintNode,
+  getProgressPercent,
+  getScoreSummary,
+  hasWonLevel,
+} from '../systems/puzzleLogic'
+
+const STORAGE_KEY = 'cyberheist-progress-v2'
+
+const loadPersistedData = () => {
+  if (typeof window === 'undefined') {
+    return { unlockedLevelIds: [1], bestResults: {} }
+  }
+
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return { unlockedLevelIds: [1], bestResults: {} }
+    const parsed = JSON.parse(raw)
+    return {
+      unlockedLevelIds: Array.isArray(parsed.unlockedLevelIds) && parsed.unlockedLevelIds.length
+        ? parsed.unlockedLevelIds
+        : [1],
+      bestResults: parsed.bestResults || {},
+    }
+  } catch {
+    return { unlockedLevelIds: [1], bestResults: {} }
+  }
+}
 
 const createAudioEngine = () => {
   if (typeof window === 'undefined') return null
-
   const AudioContextRef = window.AudioContext || window.webkitAudioContext
   if (!AudioContextRef) return null
 
@@ -28,12 +56,7 @@ const createAudioEngine = () => {
   }
 
   return {
-    resume: () => {
-      if (ctx.state === 'suspended') {
-        return ctx.resume()
-      }
-      return Promise.resolve()
-    },
+    resume: () => (ctx.state === 'suspended' ? ctx.resume() : Promise.resolve()),
     click: () => beep(740, 0.07, 'triangle', 0.035),
     error: () => {
       beep(160, 0.14, 'sawtooth', 0.04)
@@ -55,31 +78,93 @@ const createAudioEngine = () => {
       ambientGain.connect(ctx.destination)
       ambientOsc.start()
     },
+    stopAmbient: () => {
+      if (!ambientOsc) return
+      ambientOsc.stop()
+      ambientOsc.disconnect()
+      ambientGain?.disconnect()
+      ambientOsc = null
+      ambientGain = null
+    },
   }
 }
 
-const level1 = getLevelById(1)
+const persisted = loadPersistedData()
+const staticLevel1 = getLevelById(1)
 
-export const useGameStore = create((set, get) => ({
-  phase: 'boot',
-  level: level1,
-  levelIndex: buildLevelIndex(level1),
+const defaultSettings = {
+  hintsEnabled: true,
+  audioEnabled: true,
+  showTutorial: true,
+}
+
+const persistProgress = (state) => {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      unlockedLevelIds: state.unlockedLevelIds,
+      bestResults: state.bestResults,
+    }),
+  )
+}
+
+const resetStateForLevel = (level) => ({
+  phase: 'puzzle',
+  level,
+  levelIndex: buildLevelIndex(level),
   pathNodes: [],
   pathEdges: [],
   selectedNode: null,
   isDragging: false,
   lastError: null,
   progress: 0,
+  errorCount: 0,
+  levelStartAt: Date.now(),
+  elapsedMs: 0,
+  hintNodeId: null,
+  moveHistory: [],
+  scoreSummary: null,
+})
+
+export const useGameStore = create((set, get) => ({
+  phase: 'boot',
+  level: staticLevel1,
+  levelIndex: buildLevelIndex(staticLevel1),
+  pathNodes: [],
+  pathEdges: [],
+  selectedNode: null,
+  isDragging: false,
+  lastError: null,
+  progress: 0,
+  errorCount: 0,
+  levelStartAt: null,
+  elapsedMs: 0,
+  hintNodeId: null,
+  moveHistory: [],
+  scoreSummary: null,
   bootMessages: ['> INITIALIZING SYSTEM...', '> CONNECTING...', '> ACCESS TERMINAL'],
-  unlockedLevelIds: [1],
+  unlockedLevelIds: persisted.unlockedLevelIds,
+  bestResults: persisted.bestResults,
+  proceduralLevels: [],
+  nextProceduralId: 100,
   audio: null,
-  successFlashKey: 0,
+  settings: defaultSettings,
+  eventLog: [],
+
+  getAvailableLevels: () => getLevelMeta(get().proceduralLevels),
+
+  logEvent: (type, payload = {}) => {
+    set((state) => ({ eventLog: [...state.eventLog.slice(-79), { type, payload, at: Date.now() }] }))
+  },
 
   initAudio: async () => {
-    const current = get().audio
-    if (current) {
-      await current.resume()
-      current.startAmbient()
+    const state = get()
+    if (!state.settings.audioEnabled) return
+
+    if (state.audio) {
+      await state.audio.resume()
+      state.audio.startAmbient()
       return
     }
 
@@ -90,35 +175,75 @@ export const useGameStore = create((set, get) => ({
     set({ audio: engine })
   },
 
+  updateSetting: (key, value) => {
+    set((state) => ({ settings: { ...state.settings, [key]: value } }))
+    const state = get()
+    if (key === 'audioEnabled') {
+      state.audio?.resume()
+      if (value) state.audio?.startAmbient()
+      else state.audio?.stopAmbient()
+    }
+  },
+
   finishBoot: () => set({ phase: 'level-select' }),
 
   selectLevel: (levelId) => {
-    const level = getLevelById(levelId)
-    set({
-      phase: 'puzzle',
-      level,
-      levelIndex: buildLevelIndex(level),
-      pathNodes: [],
-      pathEdges: [],
-      selectedNode: null,
-      isDragging: false,
-      progress: 0,
-      lastError: null,
-    })
+    const state = get()
+    const level = getLevelById(levelId, state.proceduralLevels)
+    set(resetStateForLevel(level))
+    state.logEvent('onLevelStart', { levelId })
   },
+
+  createProceduralLevel: () => {
+    const state = get()
+    const id = state.nextProceduralId
+    const generated = generateProceduralLevel({ id, nodeCount: 7 + ((id - 100) % 3) })
+    if (!generated) {
+      state.logEvent('onError', { reason: 'procedural-generation-failed', id })
+      return
+    }
+
+    set((current) => ({
+      proceduralLevels: [...current.proceduralLevels, generated],
+      nextProceduralId: current.nextProceduralId + 1,
+      unlockedLevelIds: Array.from(new Set([...current.unlockedLevelIds, id])),
+    }))
+    state.logEvent('onProceduralLevelGenerated', { levelId: id })
+  },
+
+  tickTimer: () => {
+    const state = get()
+    if (state.phase !== 'puzzle' || !state.levelStartAt) return
+    set({ elapsedMs: Date.now() - state.levelStartAt })
+  },
+
+  requestHint: () => {
+    const state = get()
+    if (!state.settings.hintsEnabled || state.phase !== 'puzzle') return
+    set({ hintNodeId: getHintNode(state.level, state.pathNodes) })
+  },
+
+  clearHint: () => set({ hintNodeId: null }),
 
   pointerDownNode: async (nodeId) => {
     await get().initAudio()
     const state = get()
     state.audio?.click()
+    state.logEvent('onNodeClick', { nodeId })
 
     if (!state.pathNodes.length) {
-      set({ pathNodes: [nodeId], selectedNode: nodeId, isDragging: true, progress: getProgressPercent([nodeId], state.level.nodes.length) })
+      set({
+        pathNodes: [nodeId],
+        selectedNode: nodeId,
+        isDragging: true,
+        progress: getProgressPercent([nodeId], state.level.nodes.length),
+        hintNodeId: null,
+      })
       return
     }
 
     if (state.selectedNode !== nodeId) {
-      set({ lastError: 'Zacznij przeciąganie z aktywnego noda.', isDragging: false })
+      set({ lastError: 'Start drag from currently active node.', isDragging: false })
       state.audio?.error()
       return
     }
@@ -129,13 +254,21 @@ export const useGameStore = create((set, get) => ({
   pointerUpNode: async (targetNodeId) => {
     await get().initAudio()
     const state = get()
-
-    if (!state.isDragging || !state.selectedNode) {
-      return
-    }
+    if (!state.isDragging || !state.selectedNode) return
 
     const from = state.selectedNode
     const to = targetNodeId
+    const target = state.level.nodes.find((node) => node.id === to)
+
+    if (target?.type === 'locked' && target.unlockBy && !state.pathNodes.includes(target.unlockBy)) {
+      set({
+        isDragging: false,
+        errorCount: state.errorCount + 1,
+        lastError: `Node ${to} is locked. Unlock node ${target.unlockBy} first.`,
+      })
+      state.audio?.error()
+      return
+    }
 
     const legal = canConnectNodes({
       from,
@@ -146,71 +279,89 @@ export const useGameStore = create((set, get) => ({
     })
 
     if (!legal.ok) {
-      set({ isDragging: false, lastError: legal.reason })
+      const shouldReset = target?.type === 'corrupted'
+      if (shouldReset) {
+        set({ ...resetStateForLevel(state.level), errorCount: state.errorCount + 1, lastError: 'Corrupted node triggered reset.' })
+      } else {
+        set({ isDragging: false, lastError: legal.reason, errorCount: state.errorCount + 1 })
+      }
+
       state.audio?.error()
+      state.logEvent('onError', { reason: legal.reason, to, from })
       return
     }
 
     const nextNodes = [...state.pathNodes, to]
     const nextEdges = [...state.pathEdges, [from, to]]
-    const progress = getProgressPercent(nextNodes, state.level.nodes.length)
 
     set({
       pathNodes: nextNodes,
       pathEdges: nextEdges,
       selectedNode: to,
       isDragging: false,
-      progress,
+      progress: getProgressPercent(nextNodes, state.level.nodes.length),
       lastError: null,
+      hintNodeId: null,
+      moveHistory: [...state.moveHistory, { pathNodes: state.pathNodes, pathEdges: state.pathEdges, selectedNode: state.selectedNode }],
     })
 
     state.audio?.click()
 
     if (hasWonLevel(nextNodes, state.level.nodes.length)) {
-      state.audio?.success()
-      set({ phase: 'success', successFlashKey: state.successFlashKey + 1 })
-      animate({ v: 0 }, {
-        v: 1,
-        duration: 700,
-        ease: 'outExpo',
+      const elapsedMs = Date.now() - state.levelStartAt
+      const summary = getScoreSummary({ elapsedMs, errors: state.errorCount, level: state.level })
+      const next = getNextLevelId(state.level.id, state.proceduralLevels)
+
+      set((current) => {
+        const unlockedLevelIds = next ? Array.from(new Set([...current.unlockedLevelIds, next])) : current.unlockedLevelIds
+        const prevBest = current.bestResults[current.level.id]
+        const bestResults = !prevBest || summary.score > prevBest.score
+          ? { ...current.bestResults, [current.level.id]: summary }
+          : current.bestResults
+
+        const finalState = { phase: 'success', elapsedMs, scoreSummary: summary, unlockedLevelIds, bestResults }
+        queueMicrotask(() => persistProgress({ ...current, ...finalState }))
+        return finalState
       })
 
-      const next = getNextLevelId(state.level.id)
-      if (next) {
-        set((current) => ({
-          unlockedLevelIds: Array.from(new Set([...current.unlockedLevelIds, next])),
-        }))
-      }
+      state.audio?.success()
+      state.logEvent('onLevelComplete', { levelId: state.level.id, summary })
     }
   },
 
   cancelDrag: () => set({ isDragging: false }),
 
-  retryLevel: () => {
-    const level = get().level
+  undoMove: () => {
+    const state = get()
+    if (state.phase !== 'puzzle' || !state.moveHistory.length) return
+
+    const last = state.moveHistory[state.moveHistory.length - 1]
     set({
-      phase: 'puzzle',
-      level,
-      levelIndex: buildLevelIndex(level),
-      pathNodes: [],
-      pathEdges: [],
-      selectedNode: null,
-      isDragging: false,
+      pathNodes: last.pathNodes,
+      pathEdges: last.pathEdges,
+      selectedNode: last.selectedNode,
+      moveHistory: state.moveHistory.slice(0, -1),
+      progress: getProgressPercent(last.pathNodes, state.level.nodes.length),
       lastError: null,
-      progress: 0,
+      hintNodeId: null,
     })
   },
 
-  goToLevelSelect: () => set({ phase: 'level-select', selectedNode: null, isDragging: false }),
+  retryLevel: () => {
+    const level = get().level
+    set({ ...resetStateForLevel(level), phase: 'puzzle' })
+    get().logEvent('onRestart', { levelId: level.id })
+  },
+
+  goToLevelSelect: () => set({ phase: 'level-select', selectedNode: null, isDragging: false, hintNodeId: null }),
 
   nextLevel: () => {
-    const current = get().level.id
-    const next = getNextLevelId(current)
+    const state = get()
+    const next = getNextLevelId(state.level.id, state.proceduralLevels)
     if (!next) {
       set({ phase: 'level-select' })
       return
     }
-    get().selectLevel(next)
+    state.selectLevel(next)
   },
 }))
-
