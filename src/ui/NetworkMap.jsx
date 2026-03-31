@@ -1,7 +1,8 @@
-﻿import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame } from '@react-three/fiber'
 import { Line, OrbitControls, Stars, Text } from '@react-three/drei'
 import { useMemo, useRef } from 'react'
 import { useGameStore } from '../store/useGameStore'
+import { getLevelMeta } from '../systems/levelManager'
 
 function MapNode({ level, index, unlocked, best, onSelect }) {
   const ref = useRef(null)
@@ -40,7 +41,9 @@ function NetworkMapScene() {
   const bestResults = useGameStore((state) => state.bestResults)
   const selectLevel = useGameStore((state) => state.selectLevel)
   const createProceduralLevel = useGameStore((state) => state.createProceduralLevel)
-  const levels = useGameStore((state) => state.getAvailableLevels())
+  const proceduralLevels = useGameStore((state) => state.proceduralLevels)
+
+  const levels = useMemo(() => getLevelMeta(proceduralLevels), [proceduralLevels])
 
   const points = useMemo(() => levels.map((_, index) => [-4 + index * 2.1, Math.sin(index * 0.9) * 1.2, -0.2]), [levels])
 

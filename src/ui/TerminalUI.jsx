@@ -55,11 +55,7 @@ function SuccessOverlay() {
     <div ref={ref} className="overlay success">
       <h2>ACCESS GRANTED</h2>
       <p>{level.codeName} compromised successfully.</p>
-      {summary && (
-        <p>
-          Grade {summary.grade} · Score {summary.score} · Time {summary.seconds}s
-        </p>
-      )}
+      {summary && <p>Grade {summary.grade} · Score {summary.score} · Time {summary.seconds}s</p>}
       <div className="success-actions">
         <button onClick={nextLevel}>NEXT LEVEL</button>
         <button onClick={goToLevelSelect}>LEVEL SELECT</button>
@@ -73,7 +69,8 @@ function SettingsPanel() {
   const updateSetting = useGameStore((state) => state.updateSetting)
 
   return (
-    <div className="settings-panel">
+    <div className="settings-panel hud-panel">
+      <h3>SETTINGS</h3>
       <label>
         <input type="checkbox" checked={settings.hintsEnabled} onChange={(event) => updateSetting('hintsEnabled', event.target.checked)} />
         Hints enabled
@@ -118,14 +115,14 @@ function HUD() {
   }, [lastError])
 
   return (
-    <div className="hud">
-      <div>
+    <div className="hud-layout">
+      <section className="hud-panel panel-info">
         <h1>CYBER HEIST</h1>
         <p>{level.codeName}</p>
         {settings.showTutorial && <p className="tutorial-text">{level.tutorial}</p>}
-      </div>
+      </section>
 
-      <div className="progress-box">
+      <section className="hud-panel panel-progress">
         <span>PROGRESS {progress}%</span>
         <div className="bar">
           <div className="fill" style={{ width: `${progress}%` }} />
@@ -134,18 +131,18 @@ function HUD() {
           <span>TIME {formatTime(elapsedMs)}</span>
           <span>ERRORS {errorCount}</span>
         </div>
-      </div>
+      </section>
 
-      <div className="actions">
+      <section className="hud-panel panel-actions">
         <button onClick={undoMove}>UNDO</button>
         <button onClick={retryLevel}>RESTART</button>
         <button onClick={requestHint} disabled={!settings.hintsEnabled}>HINT</button>
         <button onClick={goToLevelSelect}>LEVELS</button>
         <button onClick={() => setShowSettings((value) => !value)}>SETTINGS</button>
-      </div>
+      </section>
 
       {showSettings && <SettingsPanel />}
-      {resolvedError && <p className="error">{resolvedError}</p>}
+      {resolvedError && <section className="hud-panel panel-error">{resolvedError}</section>}
     </div>
   )
 }

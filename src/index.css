@@ -26,27 +26,32 @@ canvas {
   height: 100%;
 }
 
-.hud {
+.hud-layout {
   position: fixed;
-  left: 1.5rem;
-  top: 1.5rem;
-  width: min(520px, calc(100vw - 3rem));
-  padding: 1rem;
+  inset: 1.5rem auto auto 1.5rem;
+  display: grid;
+  grid-template-columns: minmax(280px, 420px) minmax(220px, 320px);
+  gap: 0.8rem;
+  width: min(760px, calc(100vw - 3rem));
+}
+
+.hud-panel {
   background: rgba(2, 8, 20, 0.78);
   border: 1px solid #163e57;
   border-radius: 10px;
   backdrop-filter: blur(7px);
   box-shadow: 0 0 26px rgba(0, 246, 255, 0.18);
+  padding: 0.9rem;
 }
 
-.hud h1 {
+.panel-info h1 {
   margin: 0;
   font-size: 1.1rem;
   color: #00f6ff;
   letter-spacing: 1px;
 }
 
-.hud p {
+.panel-info p {
   margin: 0.2rem 0;
   color: #80b6da;
 }
@@ -56,11 +61,7 @@ canvas {
   font-size: 0.8rem;
 }
 
-.progress-box {
-  margin-top: 0.7rem;
-}
-
-.progress-box span {
+.panel-progress span {
   color: #95e8ff;
   font-size: 0.85rem;
 }
@@ -87,11 +88,17 @@ canvas {
   transition: width 250ms ease;
 }
 
-.actions {
-  margin-top: 0.85rem;
+.panel-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  align-content: flex-start;
+}
+
+.panel-error {
+  grid-column: 1 / span 2;
+  color: #ff5f87;
+  font-size: 0.82rem;
 }
 
 button {
@@ -114,19 +121,18 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.error {
-  margin-top: 0.6rem;
-  color: #ff5f87;
-  font-size: 0.8rem;
-}
-
 .settings-panel {
-  margin-top: 0.7rem;
+  grid-column: 2 / span 1;
   border: 1px solid #274a6e;
-  border-radius: 8px;
-  padding: 0.6rem;
   display: grid;
   gap: 0.4rem;
+  align-content: start;
+}
+
+.settings-panel h3 {
+  margin: 0;
+  color: #9cefff;
+  font-size: 0.9rem;
 }
 
 .settings-panel label {

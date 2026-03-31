@@ -1,5 +1,5 @@
-﻿import { create } from 'zustand'
-import { getLevelById, getLevelMeta, getNextLevelId } from '../systems/levelManager'
+import { create } from 'zustand'
+import { getLevelById, getNextLevelId } from '../systems/levelManager'
 import { generateProceduralLevel } from '../systems/proceduralLevels'
 import {
   buildLevelIndex,
@@ -151,8 +151,6 @@ export const useGameStore = create((set, get) => ({
   audio: null,
   settings: defaultSettings,
   eventLog: [],
-
-  getAvailableLevels: () => getLevelMeta(get().proceduralLevels),
 
   logEvent: (type, payload = {}) => {
     set((state) => ({ eventLog: [...state.eventLog.slice(-79), { type, payload, at: Date.now() }] }))
