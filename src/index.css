@@ -1,0 +1,184 @@
+﻿:root {
+  font-family: 'Consolas', 'JetBrains Mono', monospace;
+  color: #d6f7ff;
+  background-color: #03040a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #0a1030 0%, #03040a 50%, #000000 100%);
+  overflow: hidden;
+}
+
+#root,
+.app {
+  width: 100vw;
+  height: 100vh;
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.hud {
+  position: fixed;
+  left: 1.5rem;
+  top: 1.5rem;
+  width: min(430px, calc(100vw - 3rem));
+  padding: 1rem;
+  background: rgba(2, 8, 20, 0.78);
+  border: 1px solid #163e57;
+  border-radius: 10px;
+  backdrop-filter: blur(7px);
+  box-shadow: 0 0 26px rgba(0, 246, 255, 0.18);
+}
+
+.hud h1 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #00f6ff;
+  letter-spacing: 1px;
+}
+
+.hud p {
+  margin: 0.2rem 0;
+  color: #80b6da;
+}
+
+.progress-box {
+  margin-top: 0.7rem;
+}
+
+.progress-box span {
+  color: #95e8ff;
+  font-size: 0.85rem;
+}
+
+.bar {
+  margin-top: 0.45rem;
+  height: 10px;
+  border: 1px solid #29516d;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22e4ff, #45ffb0);
+  transition: width 250ms ease;
+}
+
+.actions {
+  margin-top: 0.85rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+button {
+  border: 1px solid #2f5e84;
+  background: rgba(12, 25, 44, 0.74);
+  color: #cbf7ff;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+button:hover:not(:disabled) {
+  border-color: #00f6ff;
+  box-shadow: 0 0 14px rgba(0, 246, 255, 0.35);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.error {
+  margin-top: 0.6rem;
+  color: #ff5f87;
+  font-size: 0.8rem;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(2, 4, 10, 0.7);
+}
+
+.overlay.boot {
+  justify-items: start;
+  padding-left: min(5vw, 3rem);
+  align-content: center;
+  color: #93f4ff;
+}
+
+.overlay.boot p {
+  margin: 0.35rem 0;
+  opacity: 0;
+  font-size: 1.15rem;
+  animation: revealLine 0.6s ease forwards;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 0.8rem;
+  width: min(760px, calc(100vw - 3rem));
+}
+
+.level-card {
+  min-height: 140px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.level-card span {
+  color: #6bf5ff;
+}
+
+.level-card.ready {
+  border-color: #2dc491;
+}
+
+.level-card.locked {
+  border-color: #4f335f;
+}
+
+.overlay.success {
+  text-align: center;
+}
+
+.overlay.success h2 {
+  color: #45ffb0;
+  margin-bottom: 0.2rem;
+}
+
+.success-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+}
+
+@keyframes revealLine {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
